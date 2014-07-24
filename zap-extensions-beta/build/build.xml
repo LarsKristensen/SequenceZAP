@@ -1,0 +1,345 @@
+<project name="ZAP-Extensions (Beta)" default="build-all" basedir=".">
+	<description>Build ZAP extensions</description>
+
+	<property name="src" location="../src" />
+	<property name="src.version" value="1.7" />
+	<property name="build" location="build" />
+	<property name="build.lib.dir" location="lib" />
+	<property name="temp" location="temp" />
+	<property name="dist" location="zap-exts" />
+	<property name="dist.lib.dir" location="../lib" />
+	<property name="status" value="beta" />
+	<property name="versions.file" location="${dist}/ZapVersions-${status}.xml" />
+	<!-- This assumes you also have the zaproxy project -->
+	<property name="zap.plugin.dir" location="../../zaproxy/src/plugin" />
+
+	<path id="build.classpath">
+		   <fileset dir="${build.lib.dir}" includes="*.jar"/>
+	</path>
+
+	<!-- Ant task to generate JavaHelp search indexes -->
+	<taskdef name="generatejavahelpsearchindexes" classname="org.zaproxy.ant.javahelp.taskdefs.GenerateJavaHelpSearchIndexes" classpathref="build.classpath" />
+	
+	<target name="clean">
+		<delete dir="${dist}" includeEmptyDirs="true" />
+		<delete dir="${build}" includeEmptyDirs="true" />
+		<delete dir="${temp}" includeEmptyDirs="true" />
+	</target>
+
+	<target name="init">
+		<!-- Create the build directory structure used by compile -->
+		<mkdir dir="${dist}" />
+		<mkdir dir="${build}" />
+		<mkdir dir="${temp}" />
+	</target>
+
+	<target name="compile" depends="init" description="compile the source">
+		<echo message="Compiling the source..." />
+		
+		<!-- Compile with debug information if the property "javac.debug" is set to true -->
+		<local name="debug" />
+		<condition property="debug" value="true" else="false">
+			<istrue value="${javac.debug}" />
+		</condition>
+		
+		<!-- Compile the java code from ${src} into ${build} -->
+		<javac srcdir="${src}" destdir="${build}" source="${src.version}" target="${src.version}" includeantruntime="false" debug="${debug}" encoding="UTF-8">
+			<classpath>
+				<fileset dir="${dist.lib.dir}">
+					<include name="**/*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="append-to-versions-file" description="appends the extension details to the versions xml file" unless="addon-example">
+		<length file="${dist}/${file}" property="length" />
+        <tstamp>
+            <format property="yyyymmdd" pattern="yyyy-MM-dd"/>
+        </tstamp>
+		<echo file="${versions.file}" append="true">
+	&lt;addon>${extension}&lt;/addon>
+	&lt;addon_${extension}>
+		&lt;name>${name}&lt;/name>
+		&lt;description>${description}&lt;/description>
+		&lt;author>${author}&lt;/author>
+		&lt;version>${version}&lt;/version>
+		&lt;file>${file}&lt;/file>
+		&lt;status>${status}&lt;/status>
+		&lt;changes>${changes}&lt;/changes>
+		&lt;url>http://sourceforge.net/projects/zaproxy/files/add-ons/${file}/download&lt;/url>
+		&lt;info>${url}&lt;/info>
+		&lt;size>${length}&lt;/size>
+		&lt;date>${yyyymmdd}&lt;/date>
+		&lt;not-before-version>${not-before-version}&lt;/not-before-version>
+		&lt;not-from-version>${not-from-version}&lt;/not-from-version>
+	&lt;/addon_${extension}>
+</echo>
+	</target>
+	
+	<target name="build-addon" description="build the specified addon">
+		
+		<xmlproperty file="${src}/org/zaproxy/zap/extension/${addon}/ZapAddOn.xml"/>
+		<property name="file" value="${addon}-${status}-${zapaddon.version}.zap" />
+		
+		<generatejavahelpsearchindexes jhalljar="${dist.lib.dir}/jhall.jar"
+			helpcontentsdirname="contents" helpsetfilename="helpset*.hs">
+			<dirset dir="${src}/org/zaproxy/zap/extension/${addon}/resources/">
+				<include name="help" />
+				<include name="help_*_*" />
+			</dirset>
+		</generatejavahelpsearchindexes>
+
+		<local name="addon.libs.zip" />
+		<property name="addon.libs.zip" value="${temp}/libs-${addon}.zip" />
+
+		<delete file="${addon.libs.zip}" failonerror="true" />
+		<zip destfile="${addon.libs.zip}" whenempty="create">
+			<zipgroupfileset dir="${src}/org/zaproxy/zap/extension/${addon}/lib/" includes="*.jar" erroronmissingdir="false" />
+		</zip>
+
+		<jar jarfile="${dist}/${file}" update="true" compress="true">
+			<zipfileset dir="${build}" prefix="">
+				<include name="org/zaproxy/zap/extension/${addon}/**"/>
+			</zipfileset>
+			<zipfileset dir="${src}" prefix="">
+				<include name="org/zaproxy/zap/extension/${addon}/Messages*"/>
+			</zipfileset>
+			<zipfileset dir="${src}" prefix="">
+				<include name="org/zaproxy/zap/extension/${addon}/resources/**"/>
+			</zipfileset>
+			<zipfileset src="${addon.libs.zip}">
+				<exclude name="META-INF/*.DSA" />
+				<exclude name="META-INF/*.SF" />
+			</zipfileset>
+			<zipfileset dir="${src}" includes="org/zaproxy/zap/extension/${addon}/ZapAddOn.xml" fullpath="ZapAddOn.xml"/>
+		</jar>
+		<delete file="${addon.libs.zip}" />
+
+		<!-- Remove search indexes previously generated, no longer needed. -->
+		<delete dir="${src}/org/zaproxy/zap/extension/${addon}/resources/help/JavaHelpSearch" />
+		<delete dir="${src}/org/zaproxy/zap/extension/${addon}/resources/help_*_*/JavaHelpSearch" />
+
+		<antcall target="include-files"> 
+			<param name="addon" value="${addon}"/>
+			<param name="file" value="${file}"/>
+		</antcall>
+
+
+		<antcall target="append-to-versions-file"> 
+			<param name="extension" value="${addon}"/> 
+			<param name="name" value="${zapaddon.name}"/> 
+			<param name="version" value="${zapaddon.version}"/> 
+			<param name="description" value="${zapaddon.description}"/> 
+			<param name="author" value="${zapaddon.author}"/> 
+			<param name="url" value="${zapaddon.url}"/> 
+			<param name="changes" value="${zapaddon.changes}"/> 
+			<param name="file" value="${file}"/> 
+			<param name="not-before-version" value="${zapaddon.not-before-version}"/> 
+			<param name="not-from-version" value="${zapaddon.not-from-version}"/> 
+		</antcall>
+	</target>
+
+	<target name="include-files" depends="is-files-available" if="files.available"> 
+		<jar jarfile="${dist}/${file}" update="true" compress="true">
+			<zipfileset dir="${src}/org/zaproxy/zap/extension/${addon}/files/" prefix=""/>
+		</jar>
+	</target>
+
+	<target name="is-files-available">
+	    <available property="files.available" type="dir" file="${src}/org/zaproxy/zap/extension/${addon}/files"/>
+	</target>
+
+	<target name="build-bruteforce" description="build the bruteforce extension">
+		<antcall target="build-addon"><param name="addon" value="bruteforce"/></antcall>
+	
+		<!-- Add the extra classes needed -->
+		<property name="addon" value="bruteforce" /> <!-- Set this to make cut-n-pasting safer ;) -->
+		<xmlproperty file="${src}/org/zaproxy/zap/extension/${addon}/ZapAddOn.xml"/>
+		<property name="file" value="${addon}-${status}-${zapaddon.version}.zap" />
+		<jar jarfile="${dist}/${file}" update="true" compress="true">
+			<zipfileset dir="${build}" prefix="">
+				<include name="com/sittinglittleduck/DirBuster/**"/>
+			</zipfileset>
+		</jar>
+	</target>
+	
+	<target name="build-tokengen" description="build the tokengen extension">
+		<antcall target="build-addon"><param name="addon" value="tokengen"/></antcall>
+	
+		<!-- Add the extra classes needed -->
+		<property name="addon" value="tokengen" /> <!-- Set this to make cut-n-pasting safer ;) -->
+		<xmlproperty file="${src}/org/zaproxy/zap/extension/${addon}/ZapAddOn.xml"/>
+		<property name="file" value="${addon}-${status}-${zapaddon.version}.zap" />
+		<jar jarfile="${dist}/${file}" update="true" compress="true">
+			<zipfileset dir="${build}" prefix="">
+				<include name="com/fasteasytrade/JRandTest/**"/>
+			</zipfileset>
+		</jar>
+	</target>
+
+	<target name="build-all" depends="clean,compile" description="build all of the extensions">
+		<delete file="${versions.file}"/>
+		
+		<echo file="${versions.file}" append="true">&lt;ZAP></echo>
+		
+		<!-- Keep in alphabetical order ;) -->
+		<antcall target="build-addon"><param name="addon" value="alertReport"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="ascanrulesBeta"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="beanshell"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="diff"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="gettingStarted"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="invoke"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="jruby"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="jython"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="plugnhack"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="portscan"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="pscanrulesBeta"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="scripts"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="spiderAjax"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="sqliplugin"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="svndigger"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="treetools"/></antcall>
+		<antcall target="build-addon"><param name="addon" value="zest"/></antcall>
+
+		<!-- Special case due to dependencies - need to fix this sometime;) -->
+		<antcall target="build-bruteforce"/>
+		<antcall target="build-tokengen"/>
+		
+		<echo file="${versions.file}" append="true">&lt;/ZAP></echo>
+
+	</target>
+
+	<target name="deploy-addon" description="deploy the specified extension">
+		<copy todir="${zap.plugin.dir}">
+			<fileset dir="${dist}">
+			<include name="${addon}-*.zap"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="build-deploy-addon" depends="clean,compile" description="build and deploy the specified addon">
+		<antcall target="build-addon"><param name="addon" value="${addon}"/></antcall>
+		<antcall target="deploy-addon"> <param name="addon" value="${addon}"/> </antcall>
+	</target>
+
+
+	<target name="deploy-alertReport" description="deploy the Alert Report ZAP extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="alertReport"/> </antcall>
+	</target>
+
+	<target name="deploy-ascanrules" description="deploy the active scan rules">
+		<antcall target="build-deploy-addon"> <param name="addon" value="ascanrulesBeta"/> </antcall>
+	</target>
+	
+	<target name="deploy-beanshell" description="deploy the beanshell">
+		<antcall target="build-deploy-addon"> <param name="addon" value="beanshell"/> </antcall>
+	</target>
+
+	<target name="deploy-bruteforce" depends="clean,compile" description="deploy the bruteforce extension">
+		<antcall target="build-bruteforce"/>
+		<antcall target="deploy-addon"> <param name="addon" value="bruteforce"/> </antcall>
+	</target>
+	
+	<target name="deploy-diff" description="deploy the diff extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="diff"/> </antcall>
+	</target>
+
+	<target name="deploy-gettingStarted" description="deploy the gettingStarted extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="gettingStarted"/> </antcall>
+	</target>
+  
+	<target name="deploy-invoke" description="deploy the invoke extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="invoke"/> </antcall>
+	</target>
+
+	<target name="deploy-jruby" description="deploy the jruby extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="jruby"/> </antcall>
+	</target>
+
+  	<target name="deploy-jython" description="deploy the jython extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="jython"/> </antcall>
+	</target>
+
+  	<target name="deploy-plugnhack" description="deploy the plug-n-hack extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="plugnhack"/> </antcall>
+	</target>
+	
+	<target name="deploy-portscan" description="deploy the port scan extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="portscan"/> </antcall>
+	</target>
+	
+	<target name="deploy-pscanrules" description="deploy the passive scan rules">
+		<antcall target="build-deploy-addon"> <param name="addon" value="pscanrulesBeta"/> </antcall>
+	</target>
+	
+	<target name="deploy-scripts" description="deploy the scripts extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="scripts"/> </antcall>
+	</target>
+	
+	<target name="deploy-spiderAjax" description="deploy the spiderAjax extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="spiderAjax"/> </antcall>
+	</target>
+
+	<target name="deploy-tokengen" depends="clean,compile" description="deploy the tokengen extension">
+		<antcall target="build-tokengen"/>
+		<antcall target="deploy-addon"> <param name="addon" value="tokengen"/> </antcall>
+	</target>
+
+	<target name="deploy-zest" description="deploy the zest extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="zest"/> </antcall>
+	</target>
+	
+	<target name="deploy-sequence" depends="clean,deploy-zest" description="deploy the sequence extension">
+		<antcall target="build-deploy-addon"> <param name="addon" value="sequence"/> </antcall>
+	</target>
+
+
+	<target name="deploy-all" depends="build-all" description="deploy all of the extensions">
+		<copy todir="${zap.plugin.dir}">
+			<fileset dir="${dist}">
+			<include name="*.zap"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="deploy-weekly" description="deploy extensions to be included in weekly releases">
+		<!-- Set to compile with debug information -->
+		<property name="javac.debug" value="true" />
+		<antcall target="build-all" />
+		<copy todir="${zap.plugin.dir}">
+			<fileset dir="${dist}">
+				<include name="ascanrulesBeta-${status}-*.zap"/>
+				<include name="bruteforce-${status}-*.zap"/>
+				<include name="diff-${status}-*.zap"/>
+				<include name="gettingStarted-${status}-*.zap"/>
+				<include name="invoke-${status}-*.zap"/>
+				<include name="plugnhack-${status}-*.zap"/>
+				<include name="portscan-${status}-*.zap"/>
+				<include name="pscanrulesBeta-${status}-*.zap"/>
+				<include name="scripts-${status}-*.zap"/>
+				<include name="spiderAjax-${status}-*.zap"/>
+				<include name="zest-${status}-*.zap"/>
+			</fileset>
+		</copy>
+	</target>
+	
+	<target name="deploy-release" description="deploy extensions to be included in full releases">
+		<!-- Set to compile with debug information -->
+		<property name="javac.debug" value="true" />
+		<antcall target="build-all" />
+		<copy todir="${zap.plugin.dir}">
+			<fileset dir="${dist}">
+				<include name="bruteforce-${status}-*.zap"/>
+				<include name="diff-${status}-*.zap"/>
+				<include name="gettingStarted-${status}-*.zap"/>
+				<include name="invoke-${status}-*.zap"/>
+				<include name="plugnhack-${status}-*.zap"/>
+				<include name="scripts-${status}-*.zap"/>
+				<include name="spiderAjax-${status}-*.zap"/>
+				<include name="zest-${status}-*.zap"/>
+			</fileset>
+		</copy>
+	</target>
+
+</project>
