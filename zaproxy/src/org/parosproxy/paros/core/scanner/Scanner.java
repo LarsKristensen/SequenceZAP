@@ -85,9 +85,7 @@ public class Scanner implements Runnable {
 		this.pluginFactory = pluginFactory;
 		//httpSender = new HttpSender(param);
 		pool = new ThreadPool(scannerParam.getHostPerScan());
-		log.error(">>>>>>>>> SCANNER HOOKIN'");
 		Control.getSingleton().getExtensionLoader().hookScannerHook(this);
-		log.error(">>>>>>>>> SCANNER HOOKED");
 	}
 
 
