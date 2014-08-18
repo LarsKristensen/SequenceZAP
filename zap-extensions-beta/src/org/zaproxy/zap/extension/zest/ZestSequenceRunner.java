@@ -103,7 +103,7 @@ public class ZestSequenceRunner extends ZestZapRunner implements SequenceScript 
 			msgOriginal.getRequestHeader().setContentLength(msgOriginal.getRequestBody().length());
 		}
 		catch(Exception e) {
-			logger.error("Error running Sequence script: " + e.getMessage());
+			logger.error("Error running Sequence script in 'runSequenceBefore' method : " + e.getMessage());
 		}
 		return msgOriginal;
 	}
@@ -129,8 +129,7 @@ public class ZestSequenceRunner extends ZestZapRunner implements SequenceScript 
 			//Clean up redundant cookies
 			sender.getClient().getState().clearCookies();		
 		} catch (Exception e){
-			logger.error("Error running Sequence script: " + e.getMessage());
-			e.printStackTrace();
+			logger.error("Error running Sequence script in 'runSequenceAfter' method : " + e.getMessage());
 		}
 	}
 
@@ -151,7 +150,12 @@ public class ZestSequenceRunner extends ZestZapRunner implements SequenceScript 
 			IOException, ZestAssignFailException, ZestClientFailException {
 		
 		//This method makes sure each request from a Sequence Script is displayed on the Active Scan results tab.
-		ZestResponse response = super.runStatement(script, stmt, lastResponse);
+		ZestResponse response = null;
+		try {
+		response = super.runStatement(script, stmt, lastResponse);
+		}catch(NullPointerException e) {
+			logger.debug("NullPointerException occurred, while running Sequence Script: " + e.getMessage());
+		}
 
 		try {
 			if(stmt.getElementType().equals("ZestRequest"))	{
@@ -167,7 +171,7 @@ public class ZestSequenceRunner extends ZestZapRunner implements SequenceScript 
 			}
 		}
 		catch(Exception e) {
-			logger.error("Exception while trying to notify of unscanned message in a sequence.");
+			logger.debug("Exception while trying to notify of unscanned message in a sequence.");
 		}
 		return response;
 	}
