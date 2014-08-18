@@ -12,3 +12,5 @@ Once the source code is extracted, copy the files from this repository to the wo
 For more info on what this is all about, and some descriptions of our implementation, please visit our dev blog:
 
 http://zapmultistep.wordpress.com/
+
+- Lars and Stefan
