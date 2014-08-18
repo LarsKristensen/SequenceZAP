@@ -24,6 +24,7 @@
 // ZAP: 2013/04/14 Issue 608: Rename the method ExtensionHook.addSiteMapListner to addSiteMapListener
 // ZAP: 2013/05/02 Re-arranged all modifiers into Java coding standard order
 // ZAP: 2014/03/23 Issue 1022: Proxy - Allow to override a proxied message
+// ZAP: 2014/08/17 Issue 1062: Added scannerhook to be added by extensions. 
 
 package org.parosproxy.paros.extension;
 
@@ -54,7 +55,7 @@ public class ExtensionHook {
     private Vector<AbstractParam> optionsParamSetList = new Vector<>();
     // ZAP: Added support for site map listeners
     private Vector<SiteMapListener> siteMapListenerList = new Vector<>();
-    // SEQ: Added support for Scanner Hooks
+    // ZAP: Added support for Scanner Hooks
     private Vector<ScannerHook> scannerHookList = new Vector<>();
     private Vector<PersistentConnectionListener> persistentConnectionListenerList = new Vector<>();
     private List<AddonFilesChangedListener> addonFilesChangedListenerList = new ArrayList<>(); 
@@ -96,7 +97,7 @@ public class ExtensionHook {
         siteMapListenerList.add(listener);
     }
     
-    // SEQ: added an add'er
+    // ZAP: add a scanner hook
     public void addScannerHook(ScannerHook hook)
     {
     	
@@ -163,7 +164,7 @@ public class ExtensionHook {
         return siteMapListenerList;
     }
     
-    // SEQ: Got a getter
+    // ZAP: get all scannerhooks (used by extensionloader and the scanner)
     public Vector<ScannerHook> getScannerHookList() {
     	return scannerHookList;
     }

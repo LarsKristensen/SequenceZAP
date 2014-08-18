@@ -46,6 +46,8 @@
 // ZAP: 2014/03/23 Issue 1022: Proxy - Allow to override a proxied message
 // ZAP: 2014/03/23 Issue 1090: Do not add pop up menus if target extension is not enabled
 // ZAP: 2014/05/20 Issue 1202: Issue with loading addons that did not initialize correctly
+// ZAP: 2014/08/17 Issue 1062: Added scannerhook to be loaded by an active scanner.
+
 package org.parosproxy.paros.extension;
 
 import java.util.ArrayList;
@@ -310,7 +312,7 @@ public class ExtensionLoader {
 		}
 	}
 
-	// SEQ: Hook' it!
+	// ZAP: method called by the scanner to load all scanner hooks. 
 	public void hookScannerHook(Scanner scan) {
 		Iterator<ExtensionHook> iter = extensionHooks.values().iterator();
 		while(iter.hasNext()){
@@ -330,10 +332,10 @@ public class ExtensionLoader {
 		}
 	}
 
-	// SEQ: Unhook it!
-	private void removeScannerHook(ExtensionHook hook) {
-		//TODO: Implement
-	}
+// ZAP: remove a scanner hook listener 
+//	private void removeScannerHook(ExtensionHook hook) {
+//		//TODO: Implement
+//	}
 
 	public void optionsChangedAllPlugin(OptionsParam options) {
 		for (ExtensionHook hook : extensionHooks.values()) {

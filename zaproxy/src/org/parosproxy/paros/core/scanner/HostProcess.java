@@ -42,6 +42,7 @@
 // ZAP: 2014/06/23 Issue 1241: Active scanner might not report finished state when using host scanners
 // ZAP: 2014/06/26 Added the possibility to evaluate the current plugin/process progress
 // ZAP: 2014/07/07 Issue 389: Enable technology scope for scanners
+// ZAP: 2014/08/14 Issue 1062: Made it possible to hook into the active scanner from extensions
 
 package org.parosproxy.paros.core.scanner;
 
@@ -302,7 +303,7 @@ public class HostProcess implements Runnable {
                 log.debug("scanSingleNode msg null");
                 return false;
             }
-
+           
             test = plugin.getClass().newInstance();
             test.setConfig(plugin.getConfig());
             test.setDelayInMs(plugin.getDelayInMs());
@@ -581,13 +582,33 @@ public class HostProcess implements Runnable {
 		this.techSet = techSet;
 	}
 	
-	 // SEQ: This method runs the "beforeScan" methods of the scanner hooks that have been added. 	
-    protected synchronized void performScannerHookBeforeScan(HttpMessage msg) {
+	
+    /** 
+     * ZAP: abstract plugin will call this method in order to invoke any extensions that have hooked into the active scanner
+     * @param msg
+     * @param plugin
+     */
+    protected synchronized void performScannerHookBeforeScan(HttpMessage msg, AbstractPlugin plugin) {
 		Iterator<ScannerHook> iter = this.parentScanner.getScannerHooks().iterator();
 		while(iter.hasNext()){
 			ScannerHook hook = iter.next();
 			if(hook != null) {
-				hook.beforeScan(msg);
+				hook.beforeScan(msg, plugin); 
+			}
+		}
+    }
+    
+    /** 
+     * ZAP: abstract plugin will call this method in order to invoke any extensions that have hooked into the active scanner 
+     * @param msg
+     * @param plugin
+     */
+    protected synchronized void performScannerHookAfterScan(HttpMessage msg, AbstractPlugin plugin) {
+		Iterator<ScannerHook> iter = this.parentScanner.getScannerHooks().iterator();
+		while(iter.hasNext()){
+			ScannerHook hook = iter.next();
+			if(hook != null) {
+				hook.afterScan(msg, plugin);
 			}
 		}
     }

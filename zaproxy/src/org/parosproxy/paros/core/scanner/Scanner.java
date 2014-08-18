@@ -31,6 +31,7 @@
 // messages in scope if multiple domains available
 // ZAP: 2014/06/23 Issue 1242: Active scanner might use outdated policy settings
 // ZAP: 2014/07/07 Issue 389: Enable technology scope for scanners
+// ZAP: 2014/08/14 Issue 1062: Made the scanner load all scannerhooks from the extensionloader
 
 package org.parosproxy.paros.core.scanner;
 
@@ -58,7 +59,8 @@ public class Scanner implements Runnable {
 	private static DecimalFormat decimalFormat = new java.text.DecimalFormat("###0.###");
 
 	private Vector<ScannerListener> listenerList = new Vector<>();
-	//SEQ: Added hookList
+	
+	//ZAP: Added a list of scannerhooks
 	private Vector<ScannerHook> hookList = new Vector<>();
 	private ScannerParam scannerParam = null;
 	private ConnectionParam connectionParam = null;
@@ -85,6 +87,8 @@ public class Scanner implements Runnable {
 		this.pluginFactory = pluginFactory;
 		//httpSender = new HttpSender(param);
 		pool = new ThreadPool(scannerParam.getHostPerScan());
+		
+		//ZAP: Load all scanner from extensionloader. 
 		Control.getSingleton().getExtensionLoader().hookScannerHook(this);
 	}
 
@@ -114,17 +118,15 @@ public class Scanner implements Runnable {
 		listenerList.remove(listener);
 	}
 
-	// SEQ: Did this
+	// ZAP: Added functionality to add remove and get the attached scannerhooks to the Scanner. 
 	public void addScannerHook(ScannerHook scannerHook) {
 		hookList.add(scannerHook);
 	}
 
-	// SEQ: and this	
 	public void removerScannerHook(ScannerHook scannerHook) {
 		hookList.remove(scannerHook);
 	}
 
-	// SEQ: and even this	
 	protected Vector<ScannerHook> getScannerHooks(){
 		return hookList;
 	}
@@ -223,7 +225,7 @@ public class Scanner implements Runnable {
 			ScannerListener listener = listenerList.get(i);
 			listener.scannerComplete();
 		}
-		// SEQ: Added loop to notify ScannerHooks
+		// ZAP: Invokes scannerhooks with the scannercomplete method.
 	    for (int i=0; i<hookList.size(); i++) {
 	        ScannerHook hook = hookList.get(i);
 	        hook.scannerComplete();
