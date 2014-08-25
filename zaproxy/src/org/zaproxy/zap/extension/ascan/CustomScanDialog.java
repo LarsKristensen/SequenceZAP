@@ -292,8 +292,8 @@ public class CustomScanDialog extends StandardFieldsDialog {
 	 */
 	public void updateRecuresCheckbox() {
 		JCheckBox recurseChk = (JCheckBox) this.getField(FIELD_RECURSE);
-		recurseChk.setEnabled(node.getChildCount() > 0 || getSequencePanel().getSelectedDirectScripts().size() > 0);
-		recurseChk.setSelected(node.getChildCount() > 0 || getSequencePanel().getSelectedDirectScripts().size() > 0);
+		recurseChk.setEnabled((node != null && node.getChildCount() > 0) || getSequencePanel().getSelectedDirectScripts().size() > 0);
+		recurseChk.setSelected((node != null && node.getChildCount() > 0) || getSequencePanel().getSelectedDirectScripts().size() > 0);
 	}
 
 	private void populateRequestField(SiteNode node) {
